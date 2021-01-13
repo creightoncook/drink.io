@@ -1,28 +1,10 @@
 import React from 'react';
 import './index.css';
 
-import { Fab, Box, Grid, Chip, Card, Button, InputLabel, TextField, Typography, List, ListItem, ListItemText, CardContent, CardActions } from '@material-ui/core';
+import { Fab, Box, Grid, Chip, Card, Button, InputLabel, Typography, List, ListItem, ListItemText } from '@material-ui/core';
 import { Add } from '@material-ui/icons';
-
-const Group = ({ label, handleChange, handleRemove, value }) => {
-  return   (
-    <div className="container mx-auto">
-      <Card>
-        <CardContent>
-          <InputLabel htmlFor={`${label}-group`}>
-            <Typography gutterBottom variant="h5" component="h2">
-              {label}
-            </Typography>
-          </InputLabel>
-          <TextField id={`${label}-group`} multiline value={value} onChange={handleChange} />
-        </CardContent>
-        <CardActions>
-          <Button size="small" color="secondary" onClick={handleRemove}>Remove</Button>
-        </CardActions>
-      </Card>
-    </div>
-  );
-}
+import Group from './IngredientList';
+import { IngredientProvider, useIngredient } from './IngredientList/ingredientContext';
 
 const ChipGroup = ({ label, items }) => {
   return (
@@ -107,41 +89,84 @@ const initState = {
   drinks: [],
 };
 
+const newInitState = {
+  ingredients: {
+    "Alcohol": ['Dark rum', 'Dragonberry', 'Whiskey', 'Triple Sec', 'Gin', 'Tequila', 'Malibu'],
+    "Syrups": ['Grenadine', 'Basil', 'Orange'],
+    "Mixers": ['Lime', 'Pineapple', 'Mango', 'Guava', 'Club soda', 'Orange Vanilla Coke'],
+    "Mixers 2": ['Lime', 'Pineapple', 'Mango', 'Guava', 'Club soda', 'Orange Vanilla Coke'],
+  },
+  drinks: [],
+};
+
 let mixerCount = 3;
-function App() {
-  const [state, dispatch] = React.useReducer(reducer, initState);
-  React.useEffect(() => {
-    console.log(state);
-  })
+
+const History = ({ drinks }) => {
+  return (
+    <Grid item xs={12}>
+      <Box textAlign="center">
+        <Typography color="textPrimary" variant="h5">
+          Past Drinks
+        </Typography>
+        <List>
+          {
+            drinks.slice(1).map(drink => (
+              <ListItem key={drink} alignItems="center">
+                <ListItemText primary={drink} />
+              </ListItem>
+            ))
+          }
+        </List>
+      </Box>
+    </Grid>
+  );
+}
+
+const App = () => {
+  // const [state, dispatch] = React.useReducer(reducer, initState);
+  const [state, dispatch] = useIngredient();
+  const [drinks, setDrinks] = React.useState([]);
+
   const handleClick = () => {
-    const randIngredients = Object.values(state.ingredients).flatMap(value => {
-      const items = value.split(/\r?\n/);
-      const item = getRandom(items);
+    const randIngredients = Object.values(state).flatMap(value => {
+      const item = getRandom(value);
       return item ? [item] : [];
     });
 
     const formatDrink = (...randIngredients) => `${randIngredients.slice(0, -1).join(', ') + ' and ' + randIngredients.slice(-1)}`;
 
-    dispatch({
-      type: 'GENERATE_DRINK',
-      payload: formatDrink(...randIngredients),
-    })
+    const newDrink = formatDrink(...randIngredients);
+    setDrinks(drinks => [newDrink, ...drinks]);
   };
 
-  const handleRemove = (label) => dispatch(removeIngredient(label));
-  // Grid container justify="center" alignItems="flex-start" spacing={4}
   return (
-    <div className="container mx-auto">
-       <div className="grid gap-4 grid-cols-4">
+    <div className="h-screen w-screen bg-gray-400">
+      <div className="container mx-auto">
+       <div className="grid gap-4 grid-cols-1 md:grid-cols-4 xl:grid-cols-6">
       {
-        Object.entries(state.ingredients).map(([key, value]) => (
-          <Group key={key} label={key} value={value} handleChange={e => dispatch(addItem(key)(e))} handleRemove={() => handleRemove(key)} />
+        Object.keys(state).map( key => (
+          <Group id={key} key={key} />
         ))
       }
+      <div className="container shadow-xl mx-auto bg-gray-100 rounded-lg my-8 bg-blue w-full p-2 flex justify-center font-sans bg-opacity-25">
+        <div className="rounded bg-grey-light w-64 p-2">
+            {/* <Header id={id} /> */}
+            <div className="mt-2">
+                    {/* <Input id={id} /> */}
+                <div className="flex flex-wrap justify-center">
+                    {/* {items && items.length && items.map(item => <Chip item={item} handleClick={handleChipClick} />)} */}
+                </div>
+            </div>
+        </div>
+      </div>
       </div>
       <div style={{ 'alignSelf': 'center'}}>
       <Fab color="primary" aria-label="add" >
-        <Add onClick={() => dispatch(addIngredient(`Mixers ${mixerCount++}`))} />
+        <Add onClick={() => dispatch({
+          type: 'ADD_INGREDIENT',
+          payload: `Mixers ${mixerCount++}`,
+          }) }
+        />
       </Fab>
       </div>
       <Grid item xs={12}>
@@ -149,27 +174,15 @@ function App() {
           <Button size="medium" variant="contained" color="primary" onClick={handleClick}>Make a Drink</Button>
         </Box>
       </Grid>
-      {state.drinks.length > 0 && <Typography color="primary" variant="h4">{state.drinks.slice(0, 1)} </Typography>}
-      
-      <Grid item xs={12}>
-        <Box textAlign="center">
-          <Typography color="textPrimary" variant="h5">
-            Past Drinks
-          </Typography>
-          <List>
-            {
-              state.drinks.slice(1).map(drink => (
-                <ListItem key={drink} alignItems="center">
-                  <ListItemText primary={drink} />
-                </ListItem>
-              ))
-            }
-          </List>
-        </Box>
-      </Grid>
+      {drinks.length > 0 && <Typography color="primary" variant="h4">{drinks.slice(0, 1)} </Typography>}
+      <History drinks={drinks} />
+      </div>
     </div>
-   
   );
 }
 
-export default App;
+export default () => (
+  <IngredientProvider>
+    <App />
+  </IngredientProvider>
+);
