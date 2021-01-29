@@ -1,4 +1,6 @@
 import React from 'react';
+import {  usePersistedReducer } from '../hooks/usePersist';
+
 const IngredientStateContext = React.createContext();
 const IngredientDispatchContext = React.createContext();
 
@@ -9,21 +11,31 @@ const reducer = (state = {}, action) => {
             const { id, item } = action.payload;
             return {
                 ...state,
-                [id]: [...state[id], item],
+                [id]: {
+                    ...state[id],
+                    items: [...state[id].items, item],
+                },
             }
         }
         case 'REMOVE_ITEM': {
             const { id, item } = action.payload;
-            const { [id]: items, ...rest } = state;
+            const { [id]: ingredient } = state;
             return {
                 ...state,
-                [id]: items.filter(i => i !== item),
+                [id]: {
+                    ...ingredient,
+                    items: ingredient.items.filter(i => i !== item),
+                }
             };
         }
         case 'ADD_INGREDIENT': {
+            const { id, label } = action.payload;
             return {
                 ...state,
-                [action.payload]: [],
+                [id]: {
+                    label,
+                    items: [],
+                },
             };
         }
         case 'REMOVE_INGREDIENT': {
@@ -33,26 +45,39 @@ const reducer = (state = {}, action) => {
         
         case 'COPY_INGREDIENT': {
             const { id, idToCopy } = action.payload;
-            const { [idToCopy]: value } = state;
+            const { [idToCopy]: ingredient } = state;
+            const getLabel = () => {
+                const newLabel = `Copy of ${ingredient.label}`;
+                const matches = Object.values(state).filter(({ label }) => label.startsWith(newLabel)).length;
+                console.log(matches);
+                return matches ? `${newLabel} #${matches + 1}` : newLabel;
+            };
             return {
                 ...state,
-                [id]: value,
+                [id]: {
+                    ...ingredient,
+                    label: getLabel(),
+                }
+            }
+        }
+         
+        case 'UPDATE_LABEL': {
+            const { id, label } = action.payload;
+            return {
+                ...state,
+                [id]: {
+                    ...state[id],
+                    label,
+                },
             }
         }
 
         default: break;
     };
 };
-
-const initState = {
-    "Alcohol": ['Dark rum', 'Dragonberry', 'Whiskey', 'Triple Sec', 'Gin', 'Tequila', 'Malibu'],
-    "Syrups": ['Grenadine', 'Basil', 'Orange'],
-    "Mixers": ['Lime', 'Pineapple', 'Mango', 'Guava', 'Club soda', 'Orange Vanilla Coke'],
-    "Mixers 2": ['Lime', 'Pineapple', 'Mango', 'Guava', 'Club soda', 'Orange Vanilla Coke'],
-};
   
 const IngredientProvider = ({ children }) => {
-    const [state, dispatch] = React.useReducer(reducer, initState);
+    const [state, dispatch] = usePersistedReducer(reducer, 'ingredients');
     return (
         <IngredientStateContext.Provider value={state}>
             <IngredientDispatchContext.Provider value={dispatch}>
