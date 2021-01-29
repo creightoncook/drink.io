@@ -112,7 +112,7 @@ const searchIngredients = (...terms) => {
 // console.log(masterTable[13194]);
 console.log(searchIngredients('Whiskey', 'Celery salt'));
 
-module.exports = searchIngredients;
+export default searchIngredients;
 /*
 [
   'Cocktail glass',
